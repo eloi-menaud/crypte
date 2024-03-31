@@ -1,0 +1,64 @@
+#!/bin/bash
+w(){
+    echo -n "📝 content : "
+    read -s content; echo
+
+    echo -n "💾 file path : "
+    read file_path
+    path="$( dirname "$(readlink -f "$0")" )/$file_path"
+    if [ -e "$path" ];then
+        echo -n "the file $path already exist, overwrite it ? (y/other) : "
+        read resp
+        if [ "$resp" != "y" ];then
+            exit 0
+        fi
+    fi
+
+    echo -n "🔑 key : "
+    read -s key; echo
+    echo -n "🔑 confirm key : "
+    read -s conf_key; echo
+    if [ "$key" != "$conf_key" ];then
+        echo "❌ Error: key and confirm key doesn't match"
+        exit 1
+    fi
+    echo "$content" | openssl enc -aes-256-cbc -pass pass:"$key" -pbkdf2 -base64 > $path
+}
+
+r(){
+    echo -n "💾 path : "
+    read file_path
+    path="$( dirname "$(readlink -f "$0")" )/$file_path"
+    if ! [ -e "$path" ];then
+        echo -n "the file $path do not exist"
+        exit 1
+    fi
+    echo -n "🔑 key : "
+    read -s key; echo -e "\n---"
+    echo "$(cat $path)" | openssl enc -d -aes-256-cbc -pass pass:"$key" -pbkdf2 -base64
+    echo -e "---"
+}
+
+
+
+man=$(cat <<EOF
+man
+| crypte read
+| crypt write
+EOF
+)
+
+case "$1" in
+  "read")
+    r
+    ;;
+
+  "write")
+    w
+    ;;
+
+  *)
+    echo "Wrong commande"; echo
+    echo "$man"
+    ;;
+esac
